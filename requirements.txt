@@ -1,0 +1,13 @@
+# Tested with Python 3.10 to 3.12. Pin the exact versions you used, e.g. with `pip freeze`.
+numpy>=1.24
+pandas>=2.0
+pyarrow>=12            # parquet support used by phenology_pipeline
+scipy>=1.10
+scikit-learn>=1.3
+torch>=2.1
+matplotlib>=3.7
+pyyaml>=6.0
+requests>=2.31
+geopandas>=0.14        # field GeoPackages
+shapely>=2.0
+earthengine-api>=0.1.380

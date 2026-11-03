@@ -1,0 +1,26 @@
+# Copy to config.yaml and edit. Relative paths are resolved against `root`.
+root: /path/to/Phenology
+years: [2017, 2018, 2019, 2020, 2021]      # harvest years
+
+gee:
+  project: your-earth-engine-project      # Google Cloud project registered for Earth Engine
+  drive_folder_s1: S1_v2                  # Google Drive folder for Sentinel-1 exports
+  drive_folder_s2: S2                     # Google Drive folder for Sentinel-2 exports
+  max_chunk_mb: 4.0                       # field geometry per export request
+
+paths:
+  # Inputs
+  fields: Fields/winter_wheat_fields_linked_{year}.gpkg   # GeoPackages with XID, Stations_i, Rank (20 m inward buffer applied)
+  phenology_master: winter_wheat_phenology_2017_2021.csv  # DWD reference dates after quality filtering
+  metadata: Metadata                                      # metadata_S2_{year}.csv (field to station links)
+  # Satellite and weather data
+  s1_exports: Timeseries/S1_v2_exports    # CSVs downloaded from the S1 Drive folder
+  s1_daily: Timeseries/S1_v2              # daily S1 field series (written by s1_build_daily)
+  s2_daily: Timeseries/S2                 # daily S2 field series, one CSV per band or index and year
+  climate_raw: Climate_raw_dwd            # DWD download cache
+  climate: Climate_v2                     # interpolated daily weather per phenology station
+  # Model inputs and outputs
+  tensors: cache/tensors_v2
+  runs: outputs/grid_v2
+  tables: outputs/tables
+  figures: outputs/figures

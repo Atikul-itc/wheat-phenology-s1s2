@@ -1,0 +1,18 @@
+# local configuration and data
+config.yaml
+data/
+cache/
+outputs/
+*.npz
+*.csv
+*.parquet
+*.gpkg
+*.zip
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+# OS
+.DS_Store
+Thumbs.db
