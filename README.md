@@ -48,7 +48,7 @@ Three inputs are prepared outside this repository:
 
 - **Field GeoPackages** (`paths.fields`, one per harvest year): winter wheat fields of at least 2 ha after a 20 m inward buffer, the ten nearest within 5 km of each station, with the columns `XID` (field id), `Stations_i` (DWD station id) and `Rank` (1 = nearest).
 - **Field links** (`paths.metadata`, `metadata_S2_<year>.csv`): the same `XID`, `Stations_i`, `Rank` table as CSV.
-- **Phenology master file** (`paths.phenology_master`): DWD winter wheat records (columns `Stations_i`, `Referenzjahr`, `Phase_id`, `Eintrittsdatum`, `Eintrittsdatum_QB`) for stations with at least three years of data in 2017 to 2021. The quality flag and stage-order filters are applied by `phenology_pipeline`.
+- **Phenology file** (`paths.phenology_master`): DWD winter wheat records (columns `Stations_i`, `Referenzjahr`, `Phase_id`, `Eintrittsdatum`, `Eintrittsdatum_QB`) for stations with at least three years of data in 2017 to 2021. The quality flag and stage-order filters are applied by `phenology_pipeline`.
 
 No data are stored in this repository.
 
@@ -80,7 +80,6 @@ python -m analysis.evaluate --config config.yaml
 python -m figures.make_figures --config config.yaml
 ```
 
-The full grid has 525 model runs. On one NVIDIA A100 it takes about [x] hours; the gradient boosting baseline adds about 30 to 60 minutes on CPU.
 
 ## Main settings
 
