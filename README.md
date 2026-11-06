@@ -80,7 +80,6 @@ python -m analysis.evaluate --config config.yaml
 python -m figures.make_figures --config config.yaml
 ```
 
-The full grid has 525 model runs. On one NVIDIA A100 it takes about [x] hours; the gradient boosting baseline adds about 30 to 60 minutes on CPU.
 
 ## Main settings
 
