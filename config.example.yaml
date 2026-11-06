@@ -7,6 +7,7 @@ gee:
   drive_folder_s1: S1_v2                  # Google Drive folder for Sentinel-1 exports
   drive_folder_s2: S2                     # Google Drive folder for Sentinel-2 exports
   max_chunk_mb: 4.0                       # field geometry per export request
+  s2_max_cloud_percent: 95                # scenes with more cloud cover are skipped
 
 paths:
   # Inputs

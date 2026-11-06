@@ -1,13 +1,19 @@
 """Field-level Sentinel-2 Level-1C reflectance and indices from Google Earth Engine (Section 2.4).
 
-Processing per scene (COPERNICUS/S2_HARMONIZED, top-of-atmosphere reflectance):
-  * scenes with CLOUDY_PIXEL_PERCENTAGE >= 70 are skipped;
+Processing per scene (COPERNICUS/S2_HARMONIZED, top-of-atmosphere reflectance,
+no atmospheric correction), as in the extraction used for the paper:
+  * scenes with CLOUDY_PIXEL_PERCENTAGE >= 95 are skipped (gee.s2_max_cloud_percent);
   * clouds: cloud score from the blue, coastal/cirrus, visible and NDMI tests
     (threshold 20), 1-pixel erosion and 5-pixel dilation;
   * cloud shadows: cloud mask projected along the solar azimuth for cloud heights
     of 200 to 10,000 m (500 m steps), kept where NIR + SWIR1 + SWIR2 < 0.35;
-  * field means of the remaining pixels for 9 bands and 4 indices
-    (EVI, NDRE, CIrededge, MTCI) plus the number of clear pixels.
+  * indices (EVI, NDRE, CIrededge, MTCI) computed per pixel after masking;
+  * field means of the clear pixels for the 9 bands and 4 indices, plus the
+    number of clear pixels, for every scene (tile) that covers the field.
+
+Fields that are fully masked in a scene are not exported (the original script wrote
+-9999 for them). Same-day values from overlapping tiles are resolved in
+``extraction.s2_build_daily``.
 
 Exports go to Google Drive as one CSV per harvest year and chunk of fields; build
 the daily files with ``extraction.s2_build_daily``.
@@ -28,7 +34,7 @@ import pandas as pd
 from common import base_parser, load_config
 from extraction.s1_extract_gee import KEYS, chunk_fields, gdf_to_fc, init_ee, load_fields
 
-MAX_CLOUD_PERCENT = 70
+MAX_CLOUD_PERCENT = 95       # default of the original extraction; override with gee.s2_max_cloud_percent
 CLOUD_THRESH = 20
 CLOUD_HEIGHTS = list(range(200, 10001, 500))
 IR_SUM_THRESH = 0.35
@@ -72,7 +78,7 @@ def mask_clouds_and_shadows(img):
         y = az.sin().multiply(dist).divide(scale).round()
         return cloud.changeProj(cloud.projection(), cloud.projection().translate(x, y))
 
-    shadow = ee.ImageCollection.fromImages(ee.List(CLOUD_HEIGHTS).map(shift)).max()
+    shadow = ee.ImageCollection.fromImages([shift(h) for h in CLOUD_HEIGHTS]).max()
     shadow = shadow.And(cloud.Not()).And(dark)
     return img.updateMask(shadow.Or(cloud).Not())
 
@@ -88,14 +94,14 @@ def add_indices(img):
                                       mtci.rename('MTCI')]).float())
 
 
-def s2_collection(start, end, region):
+def s2_collection(start, end, region, max_cloud=MAX_CLOUD_PERCENT):
     def prep(img):
         t = img.select(BANDS_IN, BANDS).divide(10000)
         return t.copyProperties(img, ['system:time_start', 'system:index',
                                       'MEAN_SOLAR_AZIMUTH_ANGLE', 'MEAN_SOLAR_ZENITH_ANGLE'])
     return (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
             .filterDate(start, end).filterBounds(region)
-            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', MAX_CLOUD_PERCENT))
+            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', max_cloud))
             .map(prep).map(mask_clouds_and_shadows).map(add_indices))
 
 
@@ -116,12 +122,13 @@ def scene_to_rows(img, fields):
 def submit(cfg, dry_run: bool) -> None:
     folder = cfg['gee'].get('drive_folder_s2', 'S2')
     max_mb = float(cfg['gee'].get('max_chunk_mb', 4.0))
+    max_cloud = float(cfg['gee'].get('s2_max_cloud_percent', MAX_CLOUD_PERCENT))
     n = 0
     for year in cfg.years:
         yy = f'{year % 100:02d}'
         gdf = load_fields(cfg.pattern('fields'), year)
         chunks = chunk_fields(gdf, max_mb)
-        print(f'{year}: {len(gdf)} fields in {len(chunks)} export(s)')
+        print(f'{year}: {len(gdf)} fields in {len(chunks)} export(s), scenes with < {max_cloud:g}% cloud')
         if dry_run:
             continue
         start = ee.Date.fromYMD(year - 1, 9, 1)
@@ -130,7 +137,7 @@ def submit(cfg, dry_run: bool) -> None:
             name = f'S2_wheat{yy}_part{k:02d}'
             region = ee.Geometry.Rectangle(list(part.total_bounds))
             fields = gdf_to_fc(part)
-            rows = s2_collection(start, end, region).map(lambda im: scene_to_rows(im, fields)).flatten()
+            rows = s2_collection(start, end, region, max_cloud).map(lambda im: scene_to_rows(im, fields)).flatten()
             ee.batch.Export.table.toDrive(collection=rows, description=name, folder=folder,
                                           fileNamePrefix=name, fileFormat='CSV', selectors=OUT_COLS).start()
             n += 1

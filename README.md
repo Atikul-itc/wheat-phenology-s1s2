@@ -48,7 +48,7 @@ Three inputs are prepared outside this repository:
 
 - **Field GeoPackages** (`paths.fields`, one per harvest year): winter wheat fields of at least 2 ha after a 20 m inward buffer, the ten nearest within 5 km of each station, with the columns `XID` (field id), `Stations_i` (DWD station id) and `Rank` (1 = nearest).
 - **Field links** (`paths.metadata`, `metadata_S2_<year>.csv`): the same `XID`, `Stations_i`, `Rank` table as CSV.
-- **Phenology file** (`paths.phenology_master`): DWD winter wheat records (columns `Stations_i`, `Referenzjahr`, `Phase_id`, `Eintrittsdatum`, `Eintrittsdatum_QB`) for stations with at least three years of data in 2017 to 2021. The quality flag and stage-order filters are applied by `phenology_pipeline`.
+- **Phenology master file** (`paths.phenology_master`): DWD winter wheat records (columns `Stations_i`, `Referenzjahr`, `Phase_id`, `Eintrittsdatum`, `Eintrittsdatum_QB`) for stations with at least three years of data in 2017 to 2021. The quality flag and stage-order filters are applied by `phenology_pipeline`.
 
 No data are stored in this repository.
 
@@ -80,6 +80,7 @@ python -m analysis.evaluate --config config.yaml
 python -m figures.make_figures --config config.yaml
 ```
 
+The full grid has 525 model runs. On one NVIDIA A100 it takes about [x] hours; the gradient boosting baseline adds about 30 to 60 minutes on CPU.
 
 ## Main settings
 
@@ -87,7 +88,7 @@ python -m figures.make_figures --config config.yaml
 |---|---|---|
 | Season window | 1 September (year before harvest) to 31 October, 426 days | `phenology_pipeline/config.py` |
 | S1 mask | incidence angle 31° to 45°, VV > −30 dB, VH > −35 dB, valid share ≥ 0.9 | `extraction/s1_*.py` |
-| S2 cloud mask | scene cloud cover < 70%, cloud score > 20, shadow projection 200 to 10,000 m | `extraction/s2_extract_gee.py` |
+| S2 cloud mask | scene cloud cover < 95%, cloud score > 20, shadow projection 200 to 10,000 m; same-day tiles: maximum per feature | `extraction/s2_extract_gee.py` |
 | Meteorology | ten nearest stations, IDW power 0.5, lapse rate −0.0065 °C m⁻¹, GDD base 0 °C | `preprocessing/dwd_meteorology.py` |
 | Labels | Gaussian, σ = 5 days | `phenology_pipeline/config.py` |
 | Model | BiGRU, 32 units per direction, Adam 10⁻³, batch 32, 15 epochs, 5 seeds | `model/train.py` |
